@@ -72,7 +72,7 @@ $order = [
             ($orderData['appleWatchModel'] ?? '') . ' ' .
             ($orderData['appleWatchModelSize'] ?? '') . 'мм',
         'quantity' => 1,
-        'initialPrice' => $orderData['totalPrice'] ?? null,
+        'initialPrice' => $orderData['productsPrice'] ?? null,
         'properties' => [
             ['name' => 'Цвет кожи', 'value' => $orderData['strapLeatherColor'] ?? 'Не выбран'],
             ['name' => 'Цвет строчки', 'value' => $orderData['stitchingColor'] ?? 'Не выбран'],

@@ -12,15 +12,12 @@ require_once 'vendor/autoload.php';
 
 $dotenv = Dotenv\Dotenv::createImmutable(__DIR__);
 $dotenv->load();
-// api/sendTelegramMessage.php
 
 header('Content-Type: application/json');
 
-// Получаем тело запроса
 $input = json_decode(file_get_contents('php://input'), true);
 $order = $input['msgContent'] ?? null;
 
-// Проверяем наличие необходимых переменных окружения
 $TELEGRAM_BOT_TOKEN = $_ENV['TELEGRAM_BOT_TOKEN'];
 $TELEGRAM_CHAT_ID = $_ENV['TELEGRAM_CHAT_ID'];
 
@@ -35,41 +32,57 @@ if (!$order) {
 
 // Формируем текст сообщения
 function createOrderMessage($order) {
-    return trim("
-Order #{$order['orderNumber']}
-Модель ремешка: {$order['strapModel']}
-Цвет кожи: {$order['strapLeatherColor']}
-Модель Apple Watch: {$order['appleWatchModel']} ({$order['appleWatchModelSize']}, {$order['appleWatchModelColor']})
-Цвет строчки: {$order['stitchingColor']}
-Цвет края: {$order['edgeColor']}
-Цвет пряжки: {$order['buckleColor']}
-Цвет адаптера: {$order['adapterColor']}
-Инициалы: " . (!empty($order['initials']['text']) ? $order['initials']['text'] : 'Нет') . "
-Подарочная коробка: " . (!empty($order['presentBox']['choosen']) ? 'Да' : 'Нет') . "
-Открытка: " . (!empty($order['postCard']['choosen']) ? $order['postCard']['text'] : 'Нет') . "
-Бабочка: " . (!empty($order['buckleButterfly']['choosen']) ? 'Да' : 'Нет') . "
-Комментарий к доставке: " . ($order['deliveryComment'] ?? '') . "
-Промокод: " . (!empty($order['promo']['code']) ? $order['promo']['code'] : 'Нет') . "
-
-Тип доставки: " . ($order['deliveryType'] ?? 'Не указано') . "
-Город доставки: " . ($order['deliveryCity'] ?? 'Не указано') . "
-Улица: " . ($order['deliveryAddressInfo']['street'] ?? 'Не указано') . "
-Дом: " . ($order['deliveryAddressInfo']['building'] ?? 'Не указано') . "
-Квартира: " . ($order['deliveryAddressInfo']['appartament'] ?? 'Не указано') . "
-Комментарий к заказу: " . ($order['deliveryComment'] ?? 'Не указано') . "
-Цена доставки: " . ($order['deliveryPrice'] ?? '') . "
-Full name: " . ($order['receiverFullname'] ?? '') . "
-Payment Amount: " . (
-        !empty($order['deliveryPrice'])
-            ? ($order['totalPrice'] + $order['deliveryPrice'])
-            : $order['totalPrice']
-    ) . " руб.
-Payment system: " . ($order['paymentType'] ?? '') . "
-
-Purchaser information:
-Email: " . ($order['email'] ?? '') . "
-Телефон: " . ($order['tel'] ?? '')
-    );
+     return
+         "<b>1.Данные заказа:</b>\n" .
+         "Номер заказа: {$order['orderNumber']}\n" .
+         "Модель ремешка: {$order['strapModel']}\n" .
+         "Цвет кожи: {$order['strapLeatherColor']}\n" .
+         "Модель apple watch: {$order['appleWatchModel']}\n" .
+         "Размер корпуса Apple Watch: {$order['appleWatchModelSize']}\n" .
+         "Цвет корпуса apple watch: {$order['appleWatchModelColor']}\n" .
+         "Цвет строчки: {$order['stitchingColor']}\n" .
+         "Цвет края: {$order['edgeColor']}\n" .
+         "цвет пряжки (застежки): {$order['buckleColor']}\n" .
+         "Цвет адаптеров (крепление к часам): {$order['adapterColor']}\n" .
+         (!empty($order['buckleButterfly']['available']) ? "Вид пряжки: " . ($order['buckleButterfly']['choosen'] ? "Пряжка бабочка" : "Стандартная") . "\n" : "") .
+         "Нужны инициалы?: " . ($order['initials']['choosen'] ? "Да, ({$order['initials']['text']})" : "Нет") . "\n" .
+         "Нужна подарочная упаковка?: " . ($order['presentBox']['choosen'] ? "Да" : "Нет") . "\n" .
+         "Нужна открытка?: " . ($order['postCard']['choosen'] ? "Да, ({$order['postCard']['text']})" : "Нет") . "\n" .
+         "\n<b>2.Данные клиента:</b>\n" .
+         "ФИО: {$order['receiverFullname']}\n" .
+         "Email: {$order['email']}\n" .
+         "Номер телефона: {$order['tel']}\n" .
+         "\n<b>3.Доставка:</b>\n" .
+         "Город доставки: {$order['deliveryCity']}\n" .
+         "Способ доставки: {$order['deliveryType']}\n" .
+         (
+             in_array($order['deliveryType'], ['СДЭК до пункта выдачи', 'Постамат OmniCDEK']) && !empty($order['deliveryPoint'])
+                 ? "Название пункта выдачи: {$order['deliveryPoint']['name']}\n" .
+                   "Адрес пункта выдачи: {$order['deliveryPoint']['address']}\n" .
+                   "Время работы пункта выдачи: {$order['deliveryPoint']['workTime']}\n" .
+                   "Телефон пункта выдачи: {$order['deliveryPoint']['phone']}\n"
+                 : ($order['deliveryType'] === 'СДЭК курьером до двери' && !empty($order['deliveryAddressInfo'])
+                     ? "Улица: {$order['deliveryAddressInfo']['street']}\n" .
+                       "Дом: {$order['deliveryAddressInfo']['building']}\n" .
+                       "Квартира: {$order['deliveryAddressInfo']['appartament']}\n"
+                     : ($order['deliveryType'] === 'Почта России 1 класс'
+                         ? "Адрес: {$order['mailAddress']}\n"
+                         : ($order['deliveryType'] === 'Доставка курьером по Санкт-Петербургу'
+                             ? "Адрес: {$order['curierAddress']}\n"
+                             : ""
+                         )
+                     )
+                 )
+         ) .
+         (!empty($order['deliveryComment']) ? "Комментарий к заказу: {$order['deliveryComment']}\n" : "") .
+         "\n<b>4.Стоимость и оплата:</b>\n" .
+         "Стоимость товара: {$order['productsPrice']} руб\n" .
+         (!empty($order['additionalOptionsPrice']) ? "Стоимость доп опций: {$order['additionalOptionsPrice']} руб\n" : "") .
+         "Стоимость доставки: " . ($order['deliveryPrice'] ?? 0) . " руб\n" .
+         (!empty($order['promo']['used']) ? "Скидка на товар по промокоду: {$order['promo']['discountValueFull']}\n" : "") .
+         "Использованный промокод: {$order['promo']['code']}\n" .
+         "Итоговая сумма: {$order['totalPrice']} руб\n" .
+         "Способ оплаты: {$order['paymentType']}\n";
 }
 
 $url = "https://api.telegram.org/bot{$TELEGRAM_BOT_TOKEN}/sendMessage";
