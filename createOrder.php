@@ -13,15 +13,12 @@ require_once 'vendor/autoload.php';
 $dotenv = Dotenv\Dotenv::createImmutable(__DIR__);
 $dotenv->load();
 
-// Получаем тело запроса
 $input = json_decode(file_get_contents('php://input'), true);
 
-// Конфигурация (лучше вынести в отдельный файл или использовать .env)
 $TOCHKA_CUSTOMER_CODE = $_ENV['TOCHKA_CUSTOMER_CODE'];
 $TOCHKA_MERCHANT_ID = $_ENV['TOCHKA_MERCHANT_ID'];
 $TOCHKA_TOKEN = $_ENV['TOCHKA_TOKEN'];
 
-// Формируем данные для запроса
 $data = [
     'Data' => [
         'customerCode' => $TOCHKA_CUSTOMER_CODE,
@@ -35,7 +32,6 @@ $data = [
 
 $url = 'https://enter.tochka.com/uapi/acquiring/v1.0/payments';
 
-// Отправляем запрос через cURL
 $ch = curl_init($url);
 curl_setopt($ch, CURLOPT_POST, true);
 curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($data));
